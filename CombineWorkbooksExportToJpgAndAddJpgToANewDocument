@@ -1,0 +1,230 @@
+Sub CombineWorkbooksExportTOjpgAndaddJpgTOaNEWDocument()
+
+    ' Declare variables
+    Dim wb As Workbook
+    Dim ws As Object ' Use Object to handle both worksheets and chart sheets
+    Dim path As String
+    Dim currentFileName As String
+    Dim combinedWB As Workbook
+    Dim combinedSheet As Worksheet
+
+    ' Get the path of the current workbook
+    path = ThisWorkbook.path & "\"
+
+    ' Get the name of the current workbook
+    currentFileName = ThisWorkbook.Name
+
+    ' Delete Combined.xlsx if it exists
+    On Error Resume Next
+    Kill path & "Combined.xlsx"
+    On Error GoTo 0
+
+    ' Create a new workbook for combined sheets
+    Set combinedWB = Workbooks.Add
+
+    ' Loop through all Excel files in the folder
+    Dim FileName As String
+    FileName = Dir(path & "*.xlsx")
+    
+    Do While FileName <> ""
+        ' Open each workbook
+        If FileName <> currentFileName Then ' Exclude the current file
+            Set wb = Workbooks.Open(FileName:=path & FileName)
+
+            ' Loop through all sheets (both worksheets and chart sheets) in the workbook
+            For Each ws In wb.Sheets
+                ' Copy the sheet to the combined workbook
+                If combinedWB.Sheets.Count > 0 Then
+                    ws.Copy after:=combinedWB.Sheets(combinedWB.Sheets.Count)
+                Else
+                    ws.Copy after:=combinedWB.Sheets(1)
+                End If
+                ' Rename the copied sheet
+                combinedWB.Sheets(combinedWB.Sheets.Count).Name = Left(wb.Name, Len(wb.Name) - 5) & "_" & ws.Name ' Remove ".xlsx" from filename
+            Next ws
+
+            ' Close the workbook without saving changes
+            wb.Close SaveChanges:=False
+        End If
+
+        ' Get the next file name
+        FileName = Dir
+    Loop
+
+    ' Delete Sheet1 if it exists
+    On Error Resume Next
+    combinedWB.Sheets("Sheet1").Delete
+    On Error GoTo 0
+
+    ' Save the combined workbook
+    combinedWB.SaveAs FileName:=path & "Combined.xlsx"
+   ExportToJPEG
+   LoadAndArrangeImages
+End Sub
+
+Sub ExportToJPEG()
+    Dim Sheet As Object ' Using Object type to handle different sheet types
+    Dim Plage As Range
+    Dim exportPath As String
+    Dim wb As Workbook
+    
+    ' Dynamically set the export path to the current directory
+    exportPath = ThisWorkbook.path & "\"
+    
+    ' Open the input file "Combined.xlsx" in the current directory
+    Set wb = Workbooks.Open(exportPath & "Combined.xlsx")
+    
+    ' Loop through each sheet in the workbook
+    For Each Sheet In wb.Sheets
+        If TypeName(Sheet) = "Worksheet" Then
+            ' Set the range to be captured using UsedRange
+            Set Plage = Sheet.UsedRange
+            ' Check if there's data on the sheet
+            If Not Plage Is Nothing Then
+                ' Copy the range as a picture
+                Plage.CopyPicture
+                ' Create a chart object and paste the picture
+                With Sheet.ChartObjects.Add(0, 0, Plage.Width, Plage.Height)
+                    .Activate
+                    .Chart.Paste
+                    ' Construct the destination file path for the image file
+                    FullFilePath = exportPath & Sheet.Name & ".jpg"
+                    ' Export the chart as a JPG image to the same folder as the Excel file
+                    .Chart.Export FullFilePath, "JPG"
+                End With
+                ' Delete the temporary chart object
+                Sheet.ChartObjects(Sheet.ChartObjects.Count).Delete
+            End If
+        ElseIf TypeName(Sheet) = "Chart" Then
+            ' Export the chart as JPEG with sheet name
+            Sheet.Export exportPath & Sheet.Name & ".jpg", "JPEG"
+        End If
+    Next Sheet
+    
+    ' Close the input workbook without saving changes
+    wb.Close False
+    
+    ' Clean up
+    Set Plage = Nothing
+    Set wb = Nothing
+    
+    MsgBox "Export completed successfully to: " & exportPath, vbInformation
+End Sub
+
+
+Sub LoadAndArrangeImages()
+    Dim imagePath As String
+    Dim imgName As String
+    Dim imgCounter As Integer
+    Dim imgTop As Integer
+    Dim imgLeft As Integer
+    Dim imgWidth As Integer
+    Dim imgHeight As Integer
+    Dim imgShape As Shape
+    Dim columnOffset As Integer
+    Dim rowSpacing As Integer
+    Dim maxColumns As Integer
+    Dim maxRows As Integer
+    Dim files() As String
+    Dim i As Integer
+    Dim folderPath As String
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim newFilePath As String
+    
+    ' Get current folder path
+    folderPath = ThisWorkbook.path
+    
+    ' Set the path for the new Excel file
+    newFilePath = folderPath & "\joinedimages.xlsx"
+    
+    ' Check if the file already exists and delete it if it does
+    If Dir(newFilePath) <> "" Then
+        Kill newFilePath
+    End If
+    
+    ' Create a new workbook
+    Set wb = Workbooks.Add
+    
+    ' Rename the first worksheet
+    Set ws = wb.Sheets(1)
+    ws.Name = "Images"
+    
+    ' Clear the contents of the current worksheet
+    ws.Cells.ClearContents
+    
+    ' Set initial position and spacing
+    imgTop = 10
+    imgLeft = 10
+    columnOffset = 220 ' Width of one column
+    rowSpacing = 20 ' Adjust this value to set row spacing
+    maxColumns = 3 ' Number of columns
+    maxRows = 100 ' Maximum number of rows
+    
+    ' Get all files in the folder
+    imgCounter = 0
+    imgName = Dir(folderPath & "\*.*")
+    Do While imgName <> ""
+        If Right(imgName, 3) = "jpg" Or Right(imgName, 3) = "png" Then
+            imgCounter = imgCounter + 1
+            ReDim Preserve files(1 To imgCounter)
+            files(imgCounter) = imgName
+        End If
+        imgName = Dir ' Get next file
+    Loop
+    
+    ' Display the count of files found in the folder
+    MsgBox "Number of files found: " & imgCounter
+    
+    ' Reset counters
+    Dim columnCounter As Integer ' Counter for columns
+    Dim rowCounter As Integer ' Counter for rows
+    columnCounter = 1
+    rowCounter = 1
+    
+    ' Loop through each file and insert images into worksheet
+    For i = 1 To imgCounter
+        ' Insert the image as a shape
+        Set imgShape = ws.Shapes.AddPicture(FileName:=folderPath & "\" & files(i), _
+                                            LinkToFile:=msoFalse, _
+                                            SaveWithDocument:=msoTrue, _
+                                            Left:=imgLeft, Top:=imgTop, Width:=-1, Height:=-1)
+        
+        ' Get image dimensions
+        imgWidth = imgShape.Width
+        imgHeight = imgShape.Height
+        
+        ' Move to the next column
+        imgLeft = imgLeft + imgWidth + columnOffset
+        
+        ' Increment column counter
+        columnCounter = columnCounter + 1
+        
+        ' If maximum number of columns reached, move to the next row
+        If columnCounter > maxColumns Then
+            ' Reset left position
+            imgLeft = 10
+            ' Move to the next row
+            imgTop = imgTop + imgHeight + rowSpacing
+            ' Reset column counter
+            columnCounter = 1
+            ' Increment row counter
+            rowCounter = rowCounter + 1
+        End If
+        
+        ' If maximum number of rows reached, exit loop
+        If rowCounter > maxRows Then
+            Exit For
+        End If
+    Next i
+    
+    ' Save the workbook
+    wb.SaveAs newFilePath
+    
+    ' Close the workbook
+    wb.Close
+    
+    MsgBox "Images loaded and arranged in joinedimages.xlsx"
+End Sub
+
+
