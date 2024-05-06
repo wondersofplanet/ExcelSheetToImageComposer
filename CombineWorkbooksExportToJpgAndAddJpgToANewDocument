@@ -1,3 +1,9 @@
+
+
+
+
+
+
 Sub CombineWorkbooksExportTOjpgAndaddJpgTOaNEWDocument()
 
     ' Declare variables
@@ -16,7 +22,7 @@ Sub CombineWorkbooksExportTOjpgAndaddJpgTOaNEWDocument()
 
     ' Delete Combined.xlsx if it exists
     On Error Resume Next
-    Kill path & "Combined.xlsx"
+    Kill path & "FinalOutputAllimagesInSingleSheet.xlsx"
     On Error GoTo 0
 
     ' Create a new workbook for combined sheets
@@ -136,7 +142,7 @@ Sub LoadAndArrangeImages()
     folderPath = ThisWorkbook.path
     
     ' Set the path for the new Excel file
-    newFilePath = folderPath & "\joinedimages.xlsx"
+    newFilePath = folderPath & "\FinalOutputAllimagesInSingleSheet.xlsx"
     
     ' Check if the file already exists and delete it if it does
     If Dir(newFilePath) <> "" Then
@@ -158,7 +164,7 @@ Sub LoadAndArrangeImages()
     imgLeft = 10
     columnOffset = 220 ' Width of one column
     rowSpacing = 20 ' Adjust this value to set row spacing
-    maxColumns = 3 ' Number of columns
+    maxColumns = 3 ' Number of columns 'CHANGE HERE TO SET NUMBER OF IMAGES IN COLUMN
     maxRows = 100 ' Maximum number of rows
     
     ' Get all files in the folder
@@ -224,7 +230,24 @@ Sub LoadAndArrangeImages()
     ' Close the workbook
     wb.Close
     
-    MsgBox "Images loaded and arranged in joinedimages.xlsx"
+    MsgBox "Processing Completed! Images loaded and arranged in FinalOutputAllimagesInSingleSheet.xlsx"
 End Sub
 
+
+
+Sub A_Setup_Joining_Button()
+    Dim objSheet As Object
+    Dim objButton As Object
+    
+    ' Reference to the Sheet1
+    Set objSheet = ThisWorkbook.Sheets("Sheet1")
+    
+    ' Add a button to Sheet1
+    Set objButton = objSheet.Buttons.Add(100, 100, 100, 40)
+    With objButton
+        .Name = "btnTest"
+        .Caption = "Start Joining"
+        .OnAction = "CombineWorkbooksExportTOjpgAndaddJpgTOaNEWDocument" ' Assign the macro name to the button click event
+    End With
+End Sub
 
