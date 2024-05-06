@@ -1,4 +1,4 @@
-CombineWorkbooksExportToJpgAndAddJpgToANewDocument
+Final --CombineWorkbooksExportToJpgAndAddJpgToANewDocument
 Description:
 This VBA (Visual Basic for Applications) program automates the process of combining multiple Excel workbooks, exporting their contents as JPEG images, and arranging them into a new Excel document. It offers a convenient solution for users who need to aggregate data from various Excel sources into a single visual representation.
 
